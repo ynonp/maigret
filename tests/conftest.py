@@ -1,15 +1,21 @@
 import glob
+import json
 import logging
 import os
 import socket
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import mkdtemp
 
 import pytest
 from _pytest.mark import Mark
+from aiohttp import web
 
-from maigret.sites import MaigretDatabase
 from maigret.maigret import setup_arguments_parser
 from maigret.settings import Settings
-from aiohttp import web
+from maigret.sites import MaigretDatabase
+from tests.maigret_cli import SITES
 
 
 CUR_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -67,6 +73,58 @@ def default_db():
 @pytest.fixture(scope='function')
 def test_db():
     return MaigretDatabase().load_from_file(TEST_JSON_FILE)
+
+
+@pytest.fixture
+def run_maigret(tmp_path):
+    """Run the offline Maigret CLI and return its stdout as text."""
+    repo_root = str(Path(__file__).resolve().parent.parent)
+
+    def run(*args, responses=None):
+        workdir = Path(mkdtemp(dir=tmp_path))
+        db = {
+            'engines': {},
+            'sites': {
+                name: {
+                    'urlMain': url,
+                    'url': '{urlMain}/users/{username}',
+                    'checkType': 'status_code',
+                    'alexaRank': rank,
+                }
+                for rank, (name, url) in enumerate(SITES.items(), start=1)
+            },
+        }
+        (workdir / 'sites.json').write_text(json.dumps(db), encoding='utf-8')
+        (workdir / 'responses.json').write_text(json.dumps(responses or {}), encoding='utf-8')
+        command = [
+            sys.executable, '-m', 'tests.maigret_cli', 'responses.json',
+            '--db', 'sites.json', '--no-autoupdate', '--dns-resolver=threaded',
+            '--no-color', '--no-progressbar', *args,
+        ]
+        result = subprocess.run(
+            command,
+            cwd=workdir,
+            env={
+                **os.environ,
+                'PYTHONPATH': repo_root,
+                'PYTHONIOENCODING': 'utf-8',
+                'HOME': str(workdir),
+                'USERPROFILE': str(workdir),
+            },
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            encoding='utf-8',
+            timeout=30,
+        )
+        if result.returncode:
+            pytest.fail(
+                f'Maigret exited with status {result.returncode}\n'
+                f'Stdout:\n{result.stdout}\nStderr:\n{result.stderr}',
+                pytrace=False,
+            )
+        return result.stdout
+
+    return run
 
 
 @pytest.fixture(scope='function')
