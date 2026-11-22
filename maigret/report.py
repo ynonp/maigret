@@ -490,14 +490,16 @@ def save_neo4j_report(filename: str, username_results: list, db: MaigretDatabase
 
 
 def get_plaintext_report(context: dict) -> str:
-    output = (context['brief'] + " ").replace('. ', '.\n')
+    lines = (
+        list(context['brief_lines']) if 'brief_lines' in context else [context['brief']]
+    )
     interests = list(map(lambda x: x[0], context.get('interests_tuple_list', [])))
     countries = list(map(lambda x: x[0], context.get('countries_tuple_list', [])))
     if countries:
-        output += f'Countries: {", ".join(countries)}\n'
+        lines.append(f'Countries: {", ".join(countries)}')
     if interests:
-        output += f'Interests (tags): {", ".join(interests)}\n'
-    return output.strip()
+        lines.append(f'Interests (tags): {", ".join(interests)}')
+    return '\n'.join(lines).strip()
 
 
 def _md_format_value(value) -> str:
@@ -676,7 +678,7 @@ def generate_report_template(is_pdf: bool):
 
 
 def generate_report_context(username_results: list):
-    brief_text = []
+    brief_lines = []
     usernames = {}
     extended_info_count = 0
     tags: Dict[str, int] = {}
@@ -768,7 +770,7 @@ def generate_report_context(username_results: list):
                 for t in status.tags:
                     tags[t] = tags.get(t, 0) + 1
 
-        brief_text.append(
+        brief_lines.append(
             f"Search by {id_type} {username} returned {found_accounts} accounts."
         )
 
@@ -776,11 +778,10 @@ def generate_report_context(username_results: list):
             ids_list = []
             for u, t in new_ids:
                 ids_list.append(f"{u} ({t})" if t != "username" else u)
-            brief_text.append("Found target's other IDs: " + ", ".join(ids_list) + ".")
+            brief_lines.append("Found target's other IDs: " + ", ".join(ids_list) + ".")
 
-    brief_text.append(f"Extended info extracted from {extended_info_count} accounts.")
+    brief_lines.append(f"Extended info extracted from {extended_info_count} accounts.")
 
-    brief = " ".join(brief_text).strip()
     tuple_sort = lambda d: sorted(d, key=lambda x: x[1], reverse=True)
 
     if "global" in tags:
@@ -795,7 +796,8 @@ def generate_report_context(username_results: list):
 
     return {
         "username": first_username,
-        "brief": brief,
+        "brief": " ".join(brief_lines),
+        "brief_lines": brief_lines,
         "results": username_results,
         "first_seen": first_seen,
         "interests_tuple_list": tuple_sort(interests_list),

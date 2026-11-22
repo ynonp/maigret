@@ -1220,6 +1220,32 @@ def test_text_report():
     assert 'photo' in report_text
 
 
+@pytest.mark.parametrize('username', ['Dr. Evil', 'J. R. R. Tolkien'])
+def test_text_report_preserves_punctuation_inside_usernames(username):
+    context = generate_report_context([(username, 'username', {})])
+
+    assert get_plaintext_report(context).splitlines() == [
+        f'Search by username {username} returned 0 accounts.',
+        'Extended info extracted from 0 accounts.',
+    ]
+
+
+def test_text_report_preserves_punctuation_inside_discovered_ids():
+    results = {
+        'Example': {'status': GOOD_RESULT, 'ids_usernames': {'Dr. Evil': 'username'}}
+    }
+    context = generate_report_context(
+        [('alice', 'username', results), ('Dr. Evil', 'username', {})]
+    )
+
+    assert get_plaintext_report(context).splitlines() == [
+        'Search by username alice returned 1 accounts.',
+        "Found target's other IDs: Dr. Evil.",
+        'Search by username Dr. Evil returned 0 accounts.',
+        'Extended info extracted from 0 accounts.',
+    ]
+
+
 def test_text_report_broken():
     BROKEN_DATA = copy.deepcopy(TEST)
     BROKEN_DATA[0][2]['500px']['status'] = None
