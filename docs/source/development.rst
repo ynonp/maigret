@@ -87,6 +87,26 @@ silently break offline builds for every downstream packager.
   make speed
 
 
+Testing the CLI with mocked HTTP
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use the ``run_maigret`` pytest fixture to run the real CLI and get its stdout
+as a string. Pass each CLI argument separately, including usernames with spaces:
+
+.. code-block:: python
+
+   def test_username_in_output(run_maigret):
+       output = run_maigret("Dr. Evil", "--top-sites=1")
+       assert any("Dr. Evil" in line for line in output.splitlines())
+
+Each call runs in a temporary working directory with two ranked sites,
+``Example Profiles`` and ``Example Forum``. Both return HTTP 200 by default.
+Use ``responses={url: (status, body)}`` to supply an HTTP response for an exact
+URL, such as ``{"https://profiles.example.test/users/alice": (404, "")}``.
+An unexpected network request or a nonzero CLI exit fails the test with
+captured stdout and stderr.
+
+
 Site naming conventions
 -----------------------------------------------
 
