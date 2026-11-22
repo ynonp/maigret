@@ -1220,6 +1220,15 @@ def test_text_report():
     assert 'photo' in report_text
 
 
+def test_text_report_preserves_username_with_period_and_space():
+    context = generate_report_context([('Dr. Evil', 'username', {})])
+
+    assert get_plaintext_report(context).splitlines() == [
+        'Search by username Dr. Evil returned 0 accounts.',
+        'Extended info extracted from 0 accounts.',
+    ]
+
+
 def test_text_report_broken():
     BROKEN_DATA = copy.deepcopy(TEST)
     BROKEN_DATA[0][2]['500px']['status'] = None
