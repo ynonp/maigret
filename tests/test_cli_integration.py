@@ -8,6 +8,7 @@ def test_run_maigret_searches_only_the_top_site(run_maigret, username):
     assert f'[*] Checking username {username} on:' in output.splitlines()
     assert '[+] Example Profiles:' in output
     assert 'Example Forum' not in output
+    assert f'Search by username {username} returned 1 accounts.' in output.splitlines()
 
 
 def test_run_maigret_uses_canned_http_responses(run_maigret):

@@ -490,9 +490,10 @@ def save_neo4j_report(filename: str, username_results: list, db: MaigretDatabase
 
 
 def get_plaintext_report(context: dict) -> str:
-    lines = (
-        list(context['brief_lines']) if 'brief_lines' in context else [context['brief']]
-    )
+    if 'brief_lines' in context:
+        lines = list(context['brief_lines'])
+    else:
+        lines = (context['brief'] + ' ').replace('. ', '.\n').splitlines()
     interests = list(map(lambda x: x[0], context.get('interests_tuple_list', [])))
     countries = list(map(lambda x: x[0], context.get('countries_tuple_list', [])))
     if countries:
