@@ -490,14 +490,14 @@ def save_neo4j_report(filename: str, username_results: list, db: MaigretDatabase
 
 
 def get_plaintext_report(context: dict) -> str:
-    output = (context['brief'] + " ").replace('. ', '.\n')
+    lines = list(context.get('brief_lines', [context['brief']]))
     interests = list(map(lambda x: x[0], context.get('interests_tuple_list', [])))
     countries = list(map(lambda x: x[0], context.get('countries_tuple_list', [])))
     if countries:
-        output += f'Countries: {", ".join(countries)}\n'
+        lines.append(f'Countries: {", ".join(countries)}')
     if interests:
-        output += f'Interests (tags): {", ".join(interests)}\n'
-    return output.strip()
+        lines.append(f'Interests (tags): {", ".join(interests)}')
+    return '\n'.join(lines).strip()
 
 
 def _md_format_value(value) -> str:
@@ -796,6 +796,7 @@ def generate_report_context(username_results: list):
     return {
         "username": first_username,
         "brief": brief,
+        "brief_lines": brief_text,
         "results": username_results,
         "first_seen": first_seen,
         "interests_tuple_list": tuple_sort(interests_list),
