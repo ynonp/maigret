@@ -21,6 +21,17 @@ def test_run_maigret_uses_canned_http_responses(run_maigret):
     assert 'Search by username alice returned 1 accounts.' in output.splitlines()
 
 
+@pytest.mark.parametrize('username', ['Dr. Evil', 'J. R. Smith'])
+def test_short_report_keeps_username_on_one_line(run_maigret, username):
+    output = run_maigret(username, '--top-sites=1')
+
+    assert output.splitlines()[-3:] == [
+        '[*] Short text report:',
+        f'Search by username {username} returned 1 accounts.',
+        'Extended info extracted from 0 accounts.',
+    ]
+
+
 def test_run_maigret_fails_on_unmocked_requests(run_maigret):
     with pytest.raises(pytest.fail.Exception, match=r'Unexpected network access.*icanhazip\.com'):
         run_maigret('alice', '--top-sites=1', '--debug')
